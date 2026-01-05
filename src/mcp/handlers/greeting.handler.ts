@@ -16,7 +16,7 @@ type ContentWidget = {
 @Injectable()
 export class GreetingHandler {
   private readonly logger = new Logger(GreetingHandler.name);
-  private readonly baseURL = process.env.NEXTJS_URL || 'http://localhost:8000';
+  private readonly baseURL = process.env.NEXTJS_URL || 'https://refhubs.com';
 
   // Widget 정의
   private readonly widgets: ContentWidget[] = [
