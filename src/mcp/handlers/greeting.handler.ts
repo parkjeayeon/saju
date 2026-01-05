@@ -125,7 +125,7 @@ export class GreetingHandler {
           {
             uri: uri.href,
             mimeType: 'text/html+skybridge',
-            text: `<html lang="en">${greetKoHtml}</html>`,
+            text: greetKoHtml,
             _meta: {
               'openai/widgetDescription': greetWidgetKo.description,
               'openai/widgetPrefersBorder': true,
@@ -169,7 +169,7 @@ export class GreetingHandler {
           {
             uri: uri.href,
             mimeType: 'text/html+skybridge',
-            text: `<html lang="en">${greetEnHtml}</html>`,
+            text: greetEnHtml,
             _meta: {
               'openai/widgetDescription': greetWidgetEn.description,
               'openai/widgetPrefersBorder': true,
@@ -215,7 +215,7 @@ export class GreetingHandler {
           {
             uri: uri.href,
             mimeType: 'text/html+skybridge',
-            text: `<html lang="en">${calculateKoHtml}</html>`,
+            text: calculateKoHtml,
             _meta: {
               'openai/widgetDescription': calculateWidgetKo.description,
               'openai/widgetPrefersBorder': true,
@@ -260,7 +260,7 @@ export class GreetingHandler {
           {
             uri: uri.href,
             mimeType: 'text/html+skybridge',
-            text: `<html lang="en">${calculateEnHtml}</html>`,
+            text: calculateEnHtml,
             _meta: {
               'openai/widgetDescription': calculateWidgetEn.description,
               'openai/widgetPrefersBorder': true,
