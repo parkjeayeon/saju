@@ -55,6 +55,7 @@ export class GreetingHandler {
               _meta: {
                 'openai/widgetDescription': widgetKo.description,
                 'openai/widgetPrefersBorder': true,
+                'openai/widgetDomain': this.nextjsUrl,
                 'openai/widgetCSP': {
                   connect_domains: [this.nextjsUrl],
                   resource_domains: [this.nextjsUrl],
@@ -145,6 +146,7 @@ export class GreetingHandler {
               _meta: {
                 'openai/widgetDescription': widgetEn.description,
                 'openai/widgetPrefersBorder': true,
+                'openai/widgetDomain': this.nextjsUrl,
                 'openai/widgetCSP': {
                   connect_domains: [this.nextjsUrl],
                   resource_domains: [this.nextjsUrl],
@@ -369,7 +371,7 @@ export class GreetingHandler {
               _meta: {
                 'openai/widgetDescription': widgetEn.description,
                 'openai/widgetPrefersBorder': true,
-                'openai/widgetDomain': this.nextjsUrl,
+                'openai/widgetDomain': [this.nextjsUrl],
                 'openai/widgetCSP': {
                   connect_domains: [this.nextjsUrl],
                   resource_domains: [this.nextjsUrl],
