@@ -7,6 +7,7 @@ import axios from 'axios';
 export class GreetingHandler {
   private readonly logger = new Logger(GreetingHandler.name);
   private readonly nextjsUrl = process.env.NEXTJS_URL || 'https://refhubs.com';
+  private readonly htmlCache = new Map<string, string>();
 
   async register(server: McpServer) {
     this.registerResources(server);
@@ -15,7 +16,7 @@ export class GreetingHandler {
   }
 
   private registerResources(server: McpServer) {
-    // Greet Widget Resource
+    // Greet Widget Resource (기본 템플릿)
     server.registerResource(
       'greet-widget-ko',
       'ui://widget/greet-template-ko.html',
@@ -26,15 +27,6 @@ export class GreetingHandler {
         _meta: {
           'openai/widgetDescription': '사용자에게 한국어로 인사를 합니다',
           'openai/widgetPrefersBorder': true,
-          'openai/widgetDomain': 'https://chatgpt.com',
-          'openai/widgetCSP': {
-            connect_domains: ['https://chatgpt.com', this.nextjsUrl],
-            resource_domains: [
-              'https://*.oaistatic.com',
-              this.nextjsUrl,
-              'https://cdn.tailwindcss.com',
-            ],
-          },
         },
       },
       async (uri) => {
@@ -51,7 +43,7 @@ export class GreetingHandler {
       },
     );
 
-    // Calculate Widget Resource
+    // Calculate Widget Resource (기본 템플릿)
     server.registerResource(
       'calculate-widget-ko',
       'ui://widget/calculate-template-ko.html',
@@ -62,15 +54,6 @@ export class GreetingHandler {
         _meta: {
           'openai/widgetDescription': '간단한 수학 계산을 수행합니다',
           'openai/widgetPrefersBorder': true,
-          'openai/widgetDomain': 'https://chatgpt.com',
-          'openai/widgetCSP': {
-            connect_domains: ['https://chatgpt.com', this.nextjsUrl],
-            resource_domains: [
-              'https://*.oaistatic.com',
-              this.nextjsUrl,
-              'https://cdn.tailwindcss.com',
-            ],
-          },
         },
       },
       async (uri) => {
@@ -105,8 +88,7 @@ export class GreetingHandler {
           'openai/outputTemplate': 'ui://widget/greet-template-ko.html',
           'openai/toolInvocation/invoking': '인사 준비 중...',
           'openai/toolInvocation/invoked': '인사 완료!',
-          'openai/widgetAccessible': false,
-          'openai/resultCanProduceWidget': true,
+          'openai/WidgetAccessible': true,
         },
       },
       async ({ name, language = 'ko' }) => {
@@ -115,16 +97,22 @@ export class GreetingHandler {
           en: `Hello, ${name}! Nice to meet you! 🎉`,
         };
 
+        const toolData = {
+          name,
+          language,
+          greeting: greetings[language],
+        };
+
+        const metadata = {
+          timestamp: new Date().toISOString(),
+        };
+
         return {
           structuredContent: {
-            name,
-            language,
-            greeting: greetings[language],
+            ...toolData,
+            ...metadata,
           },
           content: [{ type: 'text' as const, text: greetings[language] }],
-          _meta: {
-            timestamp: new Date().toISOString(),
-          },
         };
       },
     );
@@ -146,8 +134,7 @@ export class GreetingHandler {
           'openai/outputTemplate': 'ui://widget/calculate-template-ko.html',
           'openai/toolInvocation/invoking': '계산 중...',
           'openai/toolInvocation/invoked': '계산 완료!',
-          'openai/widgetAccessible': false,
-          'openai/resultCanProduceWidget': true,
+          'openai/WidgetAccessible': true,
         },
       },
       async ({ operation, a, b }) => {
@@ -184,19 +171,30 @@ export class GreetingHandler {
             symbol = '?';
         }
 
+        const toolData = {
+          operation,
+          a,
+          b,
+          result,
+        };
+
+        const metadata = {
+          symbol,
+          operationLabel: this.getOperationLabel(operation),
+          timestamp: new Date().toISOString(),
+        };
+
         return {
-          structuredContent: { operation, a, b, result },
+          structuredContent: {
+            ...toolData,
+            ...metadata,
+          },
           content: [
             {
               type: 'text' as const,
               text: `🧮 ${a} ${symbol} ${b} = ${result}`,
             },
           ],
-          _meta: {
-            symbol,
-            operationLabel: this.getOperationLabel(operation),
-            timestamp: new Date().toISOString(),
-          },
         };
       },
     );
@@ -204,27 +202,44 @@ export class GreetingHandler {
     this.logger.log('✅ Tools registered');
   }
 
-  // Next.js에서 HTML 가져오기
+  /**
+   * Next.js에서 HTML 가져오기 (캐싱 포함)
+   */
   private async fetchNextWidget(path: string): Promise<string> {
+    // 캐시 확인
+    if (this.htmlCache.has(path)) {
+      this.logger.log(`💾 Cache hit: ${path}`);
+      return this.htmlCache.get(path)!;
+    }
+
     try {
       const url = `${this.nextjsUrl}${path}`;
       this.logger.log(`🌐 Fetching: ${url}`);
 
       const response = await axios.get(url, {
-        timeout: 10000,
+        timeout: 5000,
         headers: { Accept: 'text/html' },
       });
 
-      this.logger.log(`✅ Loaded (${response.data.length} bytes)`);
-      return response.data;
+      const html = response.data;
+
+      // 캐싱 (개발 환경에서는 캐시 비활성화 가능)
+      if (process.env.NODE_ENV === 'production') {
+        this.htmlCache.set(path, html);
+      }
+
+      this.logger.log(`✅ Loaded ${path} (${html.length} bytes)`);
+      return html;
     } catch (error) {
-      this.logger.error(`❌ Failed to fetch: ${error.message}`);
-      return this.getFallbackHtml();
+      this.logger.error(`❌ Failed to fetch ${path}: ${error.message}`);
+      return this.getFallbackHtml(path);
     }
   }
 
-  // Fallback HTML
-  private getFallbackHtml(): string {
+  /**
+   * Fallback HTML
+   */
+  private getFallbackHtml(path: string): string {
     return `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -234,15 +249,31 @@ export class GreetingHandler {
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-lg p-8 max-w-sm w-full">
-    <h2 class="text-2xl font-bold mb-4">⚠️ Widget Loading Failed</h2>
-    <p class="text-gray-600">Unable to load widget from Next.js server.</p>
-    <div id="result" class="mt-4 p-4 bg-blue-50 rounded">
-      <pre id="data"></pre>
+  <div class="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
+    <div class="text-center mb-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">⚠️ Widget Loading Failed</h2>
+      <p class="text-gray-600">Unable to load: ${path}</p>
     </div>
+    
+    <div class="bg-blue-50 rounded-lg p-4">
+      <h3 class="font-semibold text-blue-900 mb-2">Debug Info:</h3>
+      <pre id="debug-data" class="text-xs text-blue-800 overflow-auto"></pre>
+    </div>
+    
     <script>
-      const data = window.openai?.toolOutput || {};
-      document.getElementById('data').textContent = JSON.stringify(data, null, 2);
+      // window.openai 시뮬레이션
+      if (typeof window.openai === 'undefined') {
+        window.openai = {
+          toolOutput: { error: 'Widget failed to load' },
+          toolResponseMetadata: {}
+        };
+      }
+      
+      document.getElementById('debug-data').textContent = JSON.stringify({
+        toolOutput: window.openai.toolOutput,
+        metadata: window.openai.toolResponseMetadata,
+        path: '${path}'
+      }, null, 2);
     </script>
   </div>
 </body>

@@ -64,7 +64,6 @@ export function getCalculateWidgetHtml(data?: {
   <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6">
     <div class="w-full max-w-sm">
       <!-- 메인 카드 -->
-      {window.openai && JSON.stringify(window.openai)}
       <div class="relative">
         <!-- 글로우 효과 -->
         <div class="absolute -inset-1 bg-gradient-to-r ${config.gradient} rounded-3xl opacity-50 blur-lg"></div>
