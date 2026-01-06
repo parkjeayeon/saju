@@ -27,6 +27,10 @@ export class GreetingHandler {
         _meta: {
           'openai/widgetDescription': '사용자에게 한국어로 인사를 합니다',
           'openai/widgetPrefersBorder': true,
+          'openai/widgetCSP': {
+            connect_domains: [this.nextjsUrl],
+            resource_domains: [this.nextjsUrl],
+          },
         },
       },
       async (uri) => {
@@ -54,6 +58,10 @@ export class GreetingHandler {
         _meta: {
           'openai/widgetDescription': '간단한 수학 계산을 수행합니다',
           'openai/widgetPrefersBorder': true,
+          'openai/widgetCSP': {
+            connect_domains: [this.nextjsUrl],
+            resource_domains: [this.nextjsUrl],
+          },
         },
       },
       async (uri) => {
