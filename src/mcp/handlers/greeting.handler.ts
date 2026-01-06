@@ -1,137 +1,113 @@
-// src/mcp/handlers/greeting.handler.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import {
-  getCalculateWidgetHtml,
-  getGreetWidgetHtml,
-} from '../templates/widget-templates';
+import axios from 'axios';
 
 @Injectable()
 export class GreetingHandler {
   private readonly logger = new Logger(GreetingHandler.name);
-  private readonly baseURL = process.env.NEXTJS_URL || 'https://refhubs.com';
+  private readonly nextjsUrl = process.env.NEXTJS_URL || 'https://refhubs.com';
 
   async register(server: McpServer) {
-    server.server.registerCapabilities({
-      resources: { listChanged: true },
-      tools: { listChanged: true },
-    });
-
-    this.registerResourceHandlers(server);
-    this.registerToolHandlers(server);
-
-    this.logger.log('✅ All handlers registered successfully');
+    this.registerResources(server);
+    this.registerTools(server);
+    this.logger.log('✅ All handlers registered');
   }
 
-  private registerResourceHandlers(server: McpServer) {
-    // Greet Widget (한국어) - 기본 템플릿
-    const greetWidgetKo = {
-      id: 'greet-ko',
-      title: '인사하기 (한국어)',
-      templateUri: 'ui://widget/greet-template-ko.html',
-      invoking: '인사 준비 중...',
-      invoked: '인사 완료!',
-      description: '사용자에게 한국어로 인사를 합니다',
-    };
-
+  private registerResources(server: McpServer) {
+    // Greet Widget Resource
     server.registerResource(
       'greet-widget-ko',
-      greetWidgetKo.templateUri,
+      'ui://widget/greet-template-ko.html',
       {
-        title: greetWidgetKo.title,
-        description: greetWidgetKo.description,
+        title: '인사하기 (한국어)',
+        description: '사용자에게 한국어로 인사를 합니다',
         mimeType: 'text/html+skybridge',
         _meta: {
-          'openai/widgetDescription': greetWidgetKo.description,
+          'openai/widgetDescription': '사용자에게 한국어로 인사를 합니다',
           'openai/widgetPrefersBorder': true,
+          'openai/widgetDomain': 'https://chatgpt.com',
+          'openai/widgetCSP': {
+            connect_domains: ['https://chatgpt.com', this.nextjsUrl],
+            resource_domains: [
+              'https://*.oaistatic.com',
+              this.nextjsUrl,
+              'https://cdn.tailwindcss.com',
+            ],
+          },
         },
       },
       async (uri) => {
-        // 데이터 없는 기본 템플릿
-        const html = getGreetWidgetHtml();
-
+        const html = await this.fetchNextWidget('/widgets/greet');
         return {
           contents: [
             {
               uri: uri.href,
               mimeType: 'text/html+skybridge',
               text: html,
-              _meta: {
-                'openai/widgetDescription': greetWidgetKo.description,
-                'openai/widgetPrefersBorder': true,
-              },
             },
           ],
         };
       },
     );
 
-    // Calculate Widget (한국어) - 기본 템플릿
-    const calculateWidgetKo = {
-      id: 'calculate-ko',
-      title: '계산기 (한국어)',
-      templateUri: 'ui://widget/calculate-template-ko.html',
-      invoking: '계산 중...',
-      invoked: '계산 완료!',
-      description: '간단한 수학 계산을 수행합니다',
-    };
-
+    // Calculate Widget Resource
     server.registerResource(
       'calculate-widget-ko',
-      calculateWidgetKo.templateUri,
+      'ui://widget/calculate-template-ko.html',
       {
-        title: calculateWidgetKo.title,
-        description: calculateWidgetKo.description,
+        title: '계산기 (한국어)',
+        description: '간단한 수학 계산을 수행합니다',
         mimeType: 'text/html+skybridge',
         _meta: {
-          'openai/widgetDescription': calculateWidgetKo.description,
+          'openai/widgetDescription': '간단한 수학 계산을 수행합니다',
           'openai/widgetPrefersBorder': true,
+          'openai/widgetDomain': 'https://chatgpt.com',
+          'openai/widgetCSP': {
+            connect_domains: ['https://chatgpt.com', this.nextjsUrl],
+            resource_domains: [
+              'https://*.oaistatic.com',
+              this.nextjsUrl,
+              'https://cdn.tailwindcss.com',
+            ],
+          },
         },
       },
       async (uri) => {
-        // 데이터 없는 기본 템플릿
-        const html = getCalculateWidgetHtml();
+        const html = await this.fetchNextWidget('/widgets/calculate');
         return {
           contents: [
             {
               uri: uri.href,
               mimeType: 'text/html+skybridge',
               text: html,
-              _meta: {
-                'openai/widgetDescription': calculateWidgetKo.description,
-                'openai/widgetPrefersBorder': true,
-              },
             },
           ],
         };
       },
     );
 
-    this.logger.log('✅ Resource handlers registered');
+    this.logger.log('✅ Resources registered');
   }
 
-  private registerToolHandlers(server: McpServer) {
-    const greetWidgetKo = {
-      id: 'greet-ko',
-      title: '인사하기 (한국어)',
-      templateUri: 'ui://widget/greet-template-ko.html',
-      invoking: '인사 준비 중...',
-      invoked: '인사 완료!',
-      description: '사용자에게 한국어로 인사를 합니다',
-    };
-
+  private registerTools(server: McpServer) {
     // Greet Tool
     server.registerTool(
-      greetWidgetKo.id,
+      'greet-ko',
       {
-        title: greetWidgetKo.title,
-        description: greetWidgetKo.description,
+        title: '인사하기 (한국어)',
+        description: '사용자에게 한국어로 인사를 합니다',
         inputSchema: {
           name: z.string().describe('인사할 사람의 이름'),
           language: z.enum(['en', 'ko']).default('ko'),
         },
-        _meta: this.widgetMeta(greetWidgetKo),
+        _meta: {
+          'openai/outputTemplate': 'ui://widget/greet-template-ko.html',
+          'openai/toolInvocation/invoking': '인사 준비 중...',
+          'openai/toolInvocation/invoked': '인사 완료!',
+          'openai/widgetAccessible': false,
+          'openai/resultCanProduceWidget': true,
+        },
       },
       async ({ name, language = 'ko' }) => {
         const greetings = {
@@ -139,49 +115,26 @@ export class GreetingHandler {
           en: `Hello, ${name}! Nice to meet you! 🎉`,
         };
 
-        const toolData = {
-          toolType: 'greet',
-          name,
-          language,
-          greeting: greetings[language],
-          timestamp: new Date().toISOString(),
-        };
-
-        // 🔥 데이터가 주입된 HTML 즉시 생성 (네트워크 요청 없음)
-        const htmlWithData = getGreetWidgetHtml(toolData);
-
         return {
-          content: [
-            { type: 'text' as const, text: toolData.greeting },
-            {
-              type: 'resource' as const,
-              resource: {
-                uri: greetWidgetKo.templateUri,
-                mimeType: 'text/html+skybridge',
-                text: htmlWithData,
-              },
-            },
-          ],
-          _meta: this.widgetMeta(greetWidgetKo),
+          structuredContent: {
+            name,
+            language,
+            greeting: greetings[language],
+          },
+          content: [{ type: 'text' as const, text: greetings[language] }],
+          _meta: {
+            timestamp: new Date().toISOString(),
+          },
         };
       },
     );
 
-    const calculateWidgetKo = {
-      id: 'calculate-ko',
-      title: '계산기 (한국어)',
-      templateUri: 'ui://widget/calculate-template-ko.html',
-      invoking: '계산 중...',
-      invoked: '계산 완료!',
-      description: '간단한 수학 계산을 수행합니다',
-    };
-
     // Calculate Tool
     server.registerTool(
-      calculateWidgetKo.id,
+      'calculate-ko',
       {
-        title: calculateWidgetKo.title,
-        description: calculateWidgetKo.description,
+        title: '계산기 (한국어)',
+        description: '간단한 수학 계산을 수행합니다',
         inputSchema: {
           operation: z
             .enum(['add', 'subtract', 'multiply', 'divide'])
@@ -189,7 +142,13 @@ export class GreetingHandler {
           a: z.number().describe('첫 번째 숫자'),
           b: z.number().describe('두 번째 숫자'),
         },
-        _meta: this.widgetMeta(calculateWidgetKo),
+        _meta: {
+          'openai/outputTemplate': 'ui://widget/calculate-template-ko.html',
+          'openai/toolInvocation/invoking': '계산 중...',
+          'openai/toolInvocation/invoked': '계산 완료!',
+          'openai/widgetAccessible': false,
+          'openai/resultCanProduceWidget': true,
+        },
       },
       async ({ operation, a, b }) => {
         let result: number;
@@ -225,50 +184,78 @@ export class GreetingHandler {
             symbol = '?';
         }
 
-        const toolData = {
-          toolType: 'calculate',
-          operation,
-          a,
-          b,
-          symbol,
-          result,
-          expression: `${a} ${symbol} ${b}`,
-          timestamp: new Date().toISOString(),
-        };
-
-        // 🔥 데이터가 주입된 HTML 즉시 생성 (네트워크 요청 없음)
-        const htmlWithData = getCalculateWidgetHtml(toolData);
-
         return {
+          structuredContent: { operation, a, b, result },
           content: [
             {
               type: 'text' as const,
               text: `🧮 ${a} ${symbol} ${b} = ${result}`,
             },
-            {
-              type: 'resource' as const,
-              resource: {
-                uri: calculateWidgetKo.templateUri,
-                mimeType: 'text/html+skybridge',
-                text: htmlWithData,
-              },
-            },
           ],
-          _meta: this.widgetMeta(calculateWidgetKo),
+          _meta: {
+            symbol,
+            operationLabel: this.getOperationLabel(operation),
+            timestamp: new Date().toISOString(),
+          },
         };
       },
     );
 
-    this.logger.log('✅ Tool handlers registered');
+    this.logger.log('✅ Tools registered');
   }
 
-  widgetMeta(widget: any) {
-    return {
-      'openai/outputTemplate': widget.templateUri,
-      'openai/toolInvocation/invoking': widget.invoking,
-      'openai/toolInvocation/invoked': widget.invoked,
-      'openai/widgetAccessible': false,
-      'openai/resultCanProduceWidget': true,
-    } as const;
+  // Next.js에서 HTML 가져오기
+  private async fetchNextWidget(path: string): Promise<string> {
+    try {
+      const url = `${this.nextjsUrl}${path}`;
+      this.logger.log(`🌐 Fetching: ${url}`);
+
+      const response = await axios.get(url, {
+        timeout: 10000,
+        headers: { Accept: 'text/html' },
+      });
+
+      this.logger.log(`✅ Loaded (${response.data.length} bytes)`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`❌ Failed to fetch: ${error.message}`);
+      return this.getFallbackHtml();
+    }
+  }
+
+  // Fallback HTML
+  private getFallbackHtml(): string {
+    return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Widget Error</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-lg p-8 max-w-sm w-full">
+    <h2 class="text-2xl font-bold mb-4">⚠️ Widget Loading Failed</h2>
+    <p class="text-gray-600">Unable to load widget from Next.js server.</p>
+    <div id="result" class="mt-4 p-4 bg-blue-50 rounded">
+      <pre id="data"></pre>
+    </div>
+    <script>
+      const data = window.openai?.toolOutput || {};
+      document.getElementById('data').textContent = JSON.stringify(data, null, 2);
+    </script>
+  </div>
+</body>
+</html>`;
+  }
+
+  private getOperationLabel(operation: string): string {
+    const labels = {
+      add: '더하기',
+      subtract: '빼기',
+      multiply: '곱하기',
+      divide: '나누기',
+    };
+    return labels[operation] || '계산';
   }
 }
