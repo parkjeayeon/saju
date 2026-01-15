@@ -4,6 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { GreetingHandler } from './handlers/greeting.handler';
 import { randomUUID } from 'crypto';
+import { SajuHandler } from './handlers/saju.handler';
 
 @Injectable()
 export class McpService implements OnModuleDestroy {
@@ -17,7 +18,10 @@ export class McpService implements OnModuleDestroy {
     }
   >();
 
-  constructor(private readonly greetingHandler: GreetingHandler) {
+  constructor(
+    private readonly greetingHandler: GreetingHandler,
+    private readonly sajuHandler: SajuHandler,
+  ) {
     // 30분마다 세션 정리
     setInterval(() => this.cleanupStaleSessions(), 30 * 60 * 1000);
   }
@@ -54,6 +58,7 @@ export class McpService implements OnModuleDestroy {
     try {
       // 🔥 Handler 등록 (connect 전에!)
       await this.greetingHandler.register(server);
+      await this.sajuHandler.register(server);
 
       // 서버 연결
       await server.connect(transport);
