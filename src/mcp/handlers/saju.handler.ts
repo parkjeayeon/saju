@@ -151,7 +151,7 @@ export class SajuHandler {
           'openai/WidgetAccessible': true,
         },
       },
-      async (args: InputKoType) => this.returnWidgetData(args, widgetKo),
+      async (args: InputKoType) => await this.returnWidgetData(args, widgetKo),
     );
 
     // Tool: EN
@@ -168,7 +168,7 @@ export class SajuHandler {
           'openai/WidgetAccessible': true,
         },
       },
-      async (args: InputEnType) => this.returnWidgetData(args, widgetEn),
+      async (args: InputEnType) => await this.returnWidgetData(args, widgetEn),
     );
   }
 
@@ -210,7 +210,7 @@ export class SajuHandler {
         'openai/outputTemplate': widget.templateUri,
         'openai/toolInvocation/invoking': widget.invoking,
         'openai/toolInvocation/invoked': widget.invoked,
-        'openai/WidgetAccessible': true,
+        'openai/widgetAccessible': false, //기본값 true -> calltool 사용할때만
       },
     };
   }
