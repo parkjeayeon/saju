@@ -204,7 +204,7 @@ export class SajuHandler {
     const data = fetchApi.data;
     console.log(data);
     return {
-      structuredContent: {},
+      structuredContent: data,
       content: [{ type: 'text' as const, text: summaryText }],
       _meta: {
         'openai/outputTemplate': widget.templateUri,
